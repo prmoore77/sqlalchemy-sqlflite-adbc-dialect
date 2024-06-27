@@ -1,0 +1,430 @@
+import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
+
+import re
+import adbc_driver_flightsql.dbapi as flight_sql
+from sqlalchemy import pool
+from sqlalchemy import types as sqltypes
+from sqlalchemy import util
+from sqlalchemy.engine.reflection import cache
+from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import NoSuchTableError
+from sqlalchemy.engine.interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, ReflectedCheckConstraint
+from sqlalchemy.dialects import registry
+from sqlalchemy.engine.default import DefaultDialect
+
+
+__version__ = "0.0.1"
+
+if TYPE_CHECKING:
+    from sqlalchemy.base import Connection
+    from sqlalchemy.engine.interfaces import _IndexDict
+
+
+class FlightSQLWarning(Warning):
+    pass
+
+
+class ConnectionWrapper:
+    __c: "Connection"
+    notices: List[str]
+    autocommit = None
+    closed = False
+
+    def __init__(self, c: flight_sql.Connection) -> None:
+        self.__c = c
+        self.notices = list()
+
+    def cursor(self) -> flight_sql.Cursor:
+        return self.__c.cursor()
+
+    def fetchmany(self, size: Optional[int] = None) -> List:
+        return self.__c.fetchmany(size)
+
+    @property
+    def c(self) -> "Connection":
+        warnings.warn(
+            "Directly accessing the internal connection object is deprecated (please go via the __getattr__ impl)",
+            DeprecationWarning,
+        )
+        return self.__c
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.__c, name)
+
+    @property
+    def connection(self) -> "Connection":
+        return self
+
+    def close(self) -> None:
+        self.__c.close()
+
+    @property
+    def rowcount(self) -> int:
+        return self.cursor().rowcount
+
+    def executemany(
+            self,
+            statement: str,
+            parameters: Optional[List[Dict]] = None,
+            context: Optional[Any] = None,
+    ) -> None:
+        self.cursor().executemany(statement, parameters)
+
+    def execute(
+            self,
+            statement: str,
+            parameters: Optional[Tuple] = None,
+            context: Optional[Any] = None,
+    ) -> None:
+        try:
+            if statement.lower() == "commit":  # this is largely for ipython-sql
+                self.__c.commit()
+            elif statement.lower() == "register":
+                assert parameters and len(parameters) == 2, parameters
+                view_name, df = parameters
+                self.__c.register(view_name, df)
+            else:
+                with self.__c.cursor() as cur:
+                    cur.execute(statement, parameters)
+        except RuntimeError as e:
+            if e.args[0].startswith("Not implemented Error"):
+                raise NotImplementedError(*e.args) from e
+            elif (
+                    e.args[0]
+                    == "TransactionContext Error: cannot commit - no transaction is active"
+            ):
+                return
+            else:
+                raise e
+
+
+class FlightSQLDialect(DefaultDialect):
+    name = "adbc_flight_sql"
+    driver = "adbc_flight_sql_driver"
+    _has_events = False
+    supports_statement_cache = False
+    supports_comments = False
+    supports_sane_rowcount = False
+    supports_server_side_cursors = False
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+    def connect(self, *cargs: Any, **cparams: Any) -> "Connection":
+        protocol: str = "grpc"
+        use_encryption: bool = cparams.get("useEncryption", "False").lower() == "true"
+        if use_encryption:
+            protocol += "+tls"
+
+        disable_certificate_verification: bool = cparams.get("disableCertificateVerification", "False").lower() == "true"
+
+        uri = f"{protocol}://{cparams.get('host')}:{cparams.get('port')}"
+        user = cparams.get('username')
+        password = cparams.get('password')
+
+        conn = flight_sql.connect(uri=uri,
+                                  db_kwargs={"username": user,
+                                             "password": password,
+                                             "adbc.flight.sql.client_option.tls_skip_verify": str(disable_certificate_verification).lower()
+                                             }
+                                  )
+
+        # Add a notices attribute for the PostgreSQL / DuckDB dialect...
+        setattr(conn, "notices", ["n/a"])
+
+        return ConnectionWrapper(conn)
+
+    def on_connect(self) -> None:
+        pass
+
+    @classmethod
+    def get_pool_class(cls, url: URL) -> Type[pool.Pool]:
+        return pool.QueuePool
+
+    @classmethod
+    def import_dbapi(cls):
+        return flight_sql
+
+    def _get_server_version_info(self, connection: "Connection") -> Tuple[int, int]:
+        return (8, 0)
+
+    def get_default_isolation_level(self, connection: "Connection") -> None:
+        raise NotImplementedError()
+
+    def do_rollback(self, connection: "Connection") -> None:
+        with connection.cursor() as cur:
+            cur.execute("rollback")
+
+    def do_begin(self, connection: "Connection") -> None:
+        with connection.cursor() as cur:
+            cur.execute("begin")
+
+    def do_commit(self, connection: "Connection") -> None:
+        with connection.cursor() as cur:
+            cur.execute("commit")
+
+    def get_schema_names(
+            self,
+            connection: "Connection",
+            **kw: Any,
+    ) -> Any:
+        s = """
+            SELECT schema_name
+              FROM information_schema.schemata
+             WHERE catalog_name = current_database()
+             ORDER BY 1 ASC
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s)
+            rs = cur.fetchall()
+
+        return [row[0] for row in rs]
+
+    def get_table_names(
+            self,
+            connection: "Connection",
+            schema: Optional[Any] = None,
+            include: Optional[Any] = None,
+            **kw: Any,
+    ) -> Any:
+        s = """
+            SELECT table_name 
+              FROM information_schema.tables
+             WHERE table_type = 'BASE TABLE'
+               AND table_schema = ?
+            ORDER BY 1 ASC
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main"])
+            rs = cur.fetchall()
+
+        return [row[0] for row in rs]
+
+    def get_columns(
+            self,
+            connection: "Connection",
+            table_name: str,
+            schema: Optional[str] = None,
+            **kw: Any,
+    ) -> List[ReflectedColumn]:
+        s = """
+            SELECT column_name
+                 , data_type
+                 , is_nullable
+                 , column_default
+              FROM information_schema.columns
+             WHERE table_catalog = current_database()
+               AND table_schema = ?
+               AND table_name = ?
+            ORDER BY ordinal_position ASC
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main",
+                                                 table_name
+                                                 ]
+                        )
+            rs = cur.fetchall()
+
+        columns = []
+        for column_name, data_type, is_nullable, column_default in rs:
+            columns.append(ReflectedColumn(name=column_name,
+                                           type=self._get_column_type(data_type=data_type),
+                                           nullable=(is_nullable == "YES"),
+                                           default=column_default
+                                           )
+                           )
+
+        return columns
+
+    def _get_column_type(self, data_type):
+        # Map database-specific data types to SQLAlchemy types
+        if data_type == 'VARCHAR':
+            return sqltypes.String
+        elif data_type == 'INTEGER':
+            return sqltypes.Integer
+        elif data_type == 'DATE':
+            return sqltypes.DateTime
+        elif data_type == "BIGINT":
+            return sqltypes.BigInteger
+        elif re.match(pattern="^DECIMAL", string=data_type):
+            return sqltypes.Numeric
+        else:
+            raise ValueError(f"Unsupported column type: {data_type}")
+
+    def get_view_names(
+            self,
+            connection: "Connection",
+            schema: Optional[Any] = None,
+            include: Optional[Any] = None,
+            **kw: Any,
+    ) -> Any:
+        s = "SELECT table_name FROM information_schema.tables WHERE table_type='VIEW' AND table_schema=? ORDER BY 1"
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main"])
+            rs = cur.fetchall()
+
+        return [row[0] for row in rs]
+
+    def has_table(
+        self,
+        connection: "Connection",
+        table_name: str,
+        schema: Optional[str] = None,
+        **kw: Any,
+    ) -> bool:
+        s = """
+            SELECT 1
+              FROM information_schema.tables
+             WHERE table_catalog = current_database()
+               AND table_schema = ?
+               AND table_name = ?
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main",
+                                                 table_name
+                                                 ]
+                        )
+            row = cur.fetchone()
+
+        return row is not None
+
+    def get_pk_constraint(
+            self,
+            connection: "Connection",
+            table_name: str,
+            schema: Optional[str] = None,
+            **kw: Any,
+    ) -> ReflectedPrimaryKeyConstraint:
+        return_value = None
+        s = """
+            SELECT 'pk_' || table_name AS constraint_name
+                 , constraint_column_names
+              FROM duckdb_constraints()
+             WHERE constraint_type = 'PRIMARY KEY'
+               AND database_name = current_database()
+               AND schema_name = ?
+               AND table_name = ?
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main",
+                                                 table_name
+                                                 ]
+                        )
+            row = cur.fetchall()
+
+        for constraint_name, constrained_columns in row:
+           return_value = ReflectedPrimaryKeyConstraint(name=constraint_name,
+                                                        constrained_columns=constrained_columns
+                                                        )
+
+        return return_value
+
+    def get_foreign_keys(
+        self,
+        connection: "Connection",
+        table_name: str,
+        schema: Optional[str] = None,
+        **kw: Any,
+    ) -> List[ReflectedForeignKeyConstraint]:
+        return_value = []
+        s = """
+            SELECT
+                 regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\(.*\\)$', '\\1')   AS pk_table_name
+               , table_name                                                                            AS fk_table_name
+               , 'fk_' || fk_table_name || '_to_' || pk_table_name
+                 || CASE WHEN COUNT(*) OVER (PARTITION BY pk_table_name
+                                                        , fk_table_name
+                                            ) > 1
+                            THEN '_' ||
+                               DENSE_RANK() OVER (PARTITION BY pk_table_name
+                                                             , fk_table_name
+                                                  ORDER BY  constraint_column_names ASC
+                                                 )
+                         ELSE ''
+                    END                                                                                AS constraint_name
+               , constraint_column_names                                                               AS constrained_columns
+               , schema_name                                                                           AS referred_schema
+               , regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\(.*\\)$', '\\1')   AS referred_table
+               , string_split(regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\((.*)\\)$', '\\2')
+                            , ', '
+                             )                                                                         AS referred_columns
+            FROM duckdb_constraints()
+            WHERE constraint_type = 'FOREIGN KEY'
+              AND database_name = current_database()
+              AND schema_name = ?
+              AND table_name = ?
+            ORDER BY constraint_name ASC
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main",
+                                                 table_name
+                                                 ]
+                        )
+            rs = cur.fetchall()
+
+        for _, _, constraint_name, constrained_columns, referred_schema, referred_table, referred_columns in rs:
+            return_value.append(ReflectedForeignKeyConstraint(name=constraint_name,
+                                                              constrained_columns=constrained_columns,
+                                                              referred_schema=referred_schema,
+                                                              referred_table=referred_table,
+                                                              referred_columns=referred_columns
+                                                              )
+                                )
+
+        return return_value
+
+    def get_check_constraints(
+        self,
+        connection: "Connection",
+        table_name: str,
+        schema: Optional[str] = None,
+        **kw: Any,
+    ) -> List[ReflectedCheckConstraint]:
+        return_value = []
+        s = """
+            SELECT table_name 
+                || '_check_'
+                || ROW_NUMBER () OVER (PARTITION BY table_name
+                                       ORDER BY constraint_index ASC
+                                      ) AS constraint_name
+                 , expression AS sqltext
+            FROM duckdb_constraints()
+            WHERE constraint_type = 'CHECK'
+              AND database_name = current_database()
+              AND schema_name = ?
+              AND table_name = ?
+            """
+        with connection.connection.cursor() as cur:
+            cur.execute(operation=s, parameters=[schema if schema is not None else "main",
+                                                 table_name
+                                                 ]
+                        )
+            rs = cur.fetchall()
+
+        for constraint_name, sqltext in rs:
+            return_value.append(ReflectedCheckConstraint(name=constraint_name,
+                                                         sqltext=sqltext
+                                                         )
+                                )
+
+        return return_value
+    def get_indexes(
+            self,
+            connection: "Connection",
+            table_name: str,
+            schema: Optional[str] = None,
+            **kw: Any,
+    ) -> List["_IndexDict"]:
+        warnings.warn(
+            "Flight SQL ADBC SQLAlchemy driver doesn't yet support reflection on indices",
+            FlightSQLWarning,
+        )
+        return []
+
+
+# Register the dialect
+registry.register(name="adbc_flight_sql",
+                  modulepath="sqlalchemy_adbc_flight_sql_driver",
+                  objname="FlightSQLDialect"
+                  )
