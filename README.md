@@ -1,7 +1,5 @@
 # SQLAlchemy Flight SQL ADBC Driver 
 
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/duckdb-engine)](https://pypi.org/project/duckdb-engine/) [![PyPI version](https://badge.fury.io/py/duckdb-engine.svg)](https://badge.fury.io/py/duckdb-engine) [![PyPI Downloads](https://img.shields.io/pypi/dm/duckdb-engine.svg)](https://pypi.org/project/duckdb-engine/) [![codecov](https://codecov.io/gh/Mause/duckdb_engine/graph/badge.svg)](https://codecov.io/gh/Mause/duckdb_engine)
-
 Basic SQLAlchemy driver for [Flight SQL Server](https://github.com/voltrondata/flight-sql-server-example)
 
 ## Installation
