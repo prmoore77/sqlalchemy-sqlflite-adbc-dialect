@@ -2,7 +2,7 @@ import re
 import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-from adbc_driver_flightsql import dbapi as flight_sql, DatabaseOptions
+from adbc_driver_flightsql import dbapi as flight_sql, DatabaseOptions, ConnectionOptions
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.default import DefaultDialect
@@ -114,19 +114,22 @@ class FlightSQLDialect(DefaultDialect):
         password = opts.get('password', None)
         host = opts.get('host', None)
         port = opts.get('port', None)
+        database = opts.get('database', None)
 
         # Get Query parameters
         query = url.query
-        use_encryption = query.get('useEncryption', None)
-        disable_certificate_verification = query.get('disableCertificateVerification', None)
+        use_encryption = query.pop('useEncryption', None)
+        disable_certificate_verification = query.pop('disableCertificateVerification', None)
 
         args = dict()
         kwargs = dict(host=host,
                       port=port,
+                      database=database,
                       username=username,
                       password=password,
                       use_encryption=use_encryption,
-                      disable_certificate_verification=disable_certificate_verification
+                      disable_certificate_verification=disable_certificate_verification,
+                      **query
                       )
 
         # Assuming the connection arguments for your custom DB
@@ -140,15 +143,29 @@ class FlightSQLDialect(DefaultDialect):
 
         disable_certificate_verification: bool = kwargs.pop("disable_certificate_verification", "False").lower() == "true"
 
-        uri = f"{protocol}://{kwargs.get('host')}:{kwargs.get('port')}"
+        uri = f"{protocol}://{kwargs.pop('host')}:{kwargs.pop('port')}"
+
+        database = kwargs.pop('database', None)
         username = kwargs.pop('username')
         password = kwargs.pop('password')
 
+        db_kwargs = {DatabaseOptions.TLS_SKIP_VERIFY.value: str(disable_certificate_verification).lower()}
+
+        if database is not None:
+            db_kwargs["database"] = database
+        if username is not None:
+            db_kwargs["username"] = username
+        if password is not None:
+            db_kwargs["password"] = password
+
+        # Add any remaining query args as connection kwargs (RPC headers)
+        conn_kwargs = dict()
+        for key, value in kwargs.items():
+            conn_kwargs[f"{ConnectionOptions.RPC_CALL_HEADER_PREFIX.value}{key}"] = value
+
         conn = flight_sql.connect(uri=uri,
-                                  db_kwargs={"username": username,
-                                             "password": password,
-                                             DatabaseOptions.TLS_SKIP_VERIFY.value: str(disable_certificate_verification).lower()
-                                             }
+                                  db_kwargs=db_kwargs,
+                                  conn_kwargs=conn_kwargs
                                   )
 
         # Add a notices attribute for the PostgreSQL / DuckDB dialect...

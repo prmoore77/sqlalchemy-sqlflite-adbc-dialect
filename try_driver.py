@@ -26,10 +26,12 @@ def main():
     url = URL(drivername="flight_sql",
               host="localhost",
               port=31337,
-              database="default",
+              database=None,
               username=os.getenv("FLIGHT_USERNAME", "flight_username"),
               password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
-              query={"disableCertificateVerification": "True", "useEncryption": "True"},
+              query={"disableCertificateVerification": "True",
+                     "useEncryption": "True"
+                     }
               )
 
     engine = create_engine(url=url)

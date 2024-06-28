@@ -78,31 +78,30 @@ class FakeModel(Base):  # type: ignore
     name = Column(String)
 
 
-# Build the SQLAlchemy URL
+# Build the URL
 url = URL(drivername="flight_sql",
           host="localhost",
           port=31337,
-          database="default",
+          database=None,
           username=os.getenv("FLIGHT_USERNAME", "flight_username"),
           password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
-          query={"disableCertificateVerification": "True", "useEncryption": "True"},
+          query={"disableCertificateVerification": "True",
+                 "useEncryption": "True"
+                 }
           )
 
-# Create the engine and create the table
 engine = create_engine(url=url)
 Base.metadata.create_all(bind=engine)
 
-# Reflect the metadata
 metadata = MetaData()
 metadata.reflect(bind=engine)
 
-# Print out tables
 for table_name in metadata.tables:
     print(f"Table name: {table_name}")
 
-# Create a session
 with Session(bind=engine) as session:
-    # ORM
+
+    # Try ORM
     session.add(FakeModel(id=1, name="Joe"))
     session.commit()
 
