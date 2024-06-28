@@ -84,47 +84,51 @@ class FakeModel(Base):  # type: ignore
     name = Column(String)
 
 
-# Build the URL
-url = URL(drivername="flight_sql",
-          host="localhost",
-          port=31337,
-          database=None,
-          username=os.getenv("FLIGHT_USERNAME", "flight_username"),
-          password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
-          query={"disableCertificateVerification": "True",
-                 "useEncryption": "True"
-                 }
-          )
+def main():
+    # Build the URL
+    url = URL.create(drivername="flight_sql",
+                     host="localhost",
+                     port=31337,
+                     username=os.getenv("FLIGHT_USERNAME", "flight_username"),
+                     password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
+                     query={"disableCertificateVerification": "True",
+                            "useEncryption": "True"
+                            }
+                     )
 
-engine = create_engine(url=url)
-Base.metadata.create_all(bind=engine)
+    engine = create_engine(url=url)
+    Base.metadata.create_all(bind=engine)
 
-metadata = MetaData()
-metadata.reflect(bind=engine)
+    metadata = MetaData()
+    metadata.reflect(bind=engine)
 
-for table_name in metadata.tables:
-    print(f"Table name: {table_name}")
+    for table_name in metadata.tables:
+        print(f"Table name: {table_name}")
 
-with Session(bind=engine) as session:
+    with Session(bind=engine) as session:
 
-    # Try ORM
-    session.add(FakeModel(id=1, name="Joe"))
-    session.commit()
+        # Try ORM
+        session.add(FakeModel(id=1, name="Joe"))
+        session.commit()
 
-    joe = session.query(FakeModel).filter(FakeModel.name == "Joe").first()
+        joe = session.query(FakeModel).filter(FakeModel.name == "Joe").first()
 
-    assert joe.name == "Joe"
+        assert joe.name == "Joe"
 
-    # Execute some raw SQL
-    results = session.execute(statement=text("SELECT * FROM fake")).fetchall()
-    print(results)
+        # Execute some raw SQL
+        results = session.execute(statement=text("SELECT * FROM fake")).fetchall()
+        print(results)
 
-    # Try a SQLAlchemy table select
-    fake: Table = metadata.tables["fake"]
-    stmt = select(fake.c.name)
+        # Try a SQLAlchemy table select
+        fake: Table = metadata.tables["fake"]
+        stmt = select(fake.c.name)
 
-    results = session.execute(statement=stmt).fetchall()
-    print(results)
+        results = session.execute(statement=stmt).fetchall()
+        print(results)
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ### Credits

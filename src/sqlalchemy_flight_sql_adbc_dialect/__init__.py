@@ -6,9 +6,10 @@ from adbc_driver_flightsql import dbapi as flight_sql, DatabaseOptions, Connecti
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.engine.interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, \
+from .sqlalchemy_interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, \
     ReflectedCheckConstraint
 from sqlalchemy.engine.url import URL
+
 
 __version__ = "0.0.5"
 
@@ -117,10 +118,9 @@ class FlightSQLDialect(DefaultDialect):
         database = opts.get('database', None)
 
         # Get Query parameters
-        query = url.query
-        use_encryption = query.pop('useEncryption', None)
-        disable_certificate_verification = query.pop('disableCertificateVerification', None)
-
+        query_dict = dict(url.query)
+        use_encryption = query_dict.pop('useEncryption', None)
+        disable_certificate_verification = query_dict.pop('disableCertificateVerification', None)
         args = dict()
         kwargs = dict(host=host,
                       port=port,
@@ -129,7 +129,7 @@ class FlightSQLDialect(DefaultDialect):
                       password=password,
                       use_encryption=use_encryption,
                       disable_certificate_verification=disable_certificate_verification,
-                      **query
+                      **query_dict
                       )
 
         # Assuming the connection arguments for your custom DB
@@ -183,6 +183,10 @@ class FlightSQLDialect(DefaultDialect):
     @classmethod
     def import_dbapi(cls):
         return flight_sql
+
+    @classmethod
+    def dbapi(cls):
+        return cls.import_dbapi()
 
     def _get_server_version_info(self, connection: "Connection") -> Tuple[int, int]:
         return (8, 0)

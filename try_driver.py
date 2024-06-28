@@ -23,16 +23,15 @@ class FakeModel(Base):  # type: ignore
 
 def main():
     # Build the URL
-    url = URL(drivername="flight_sql",
-              host="localhost",
-              port=31337,
-              database=None,
-              username=os.getenv("FLIGHT_USERNAME", "flight_username"),
-              password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
-              query={"disableCertificateVerification": "True",
-                     "useEncryption": "True"
-                     }
-              )
+    url = URL.create(drivername="flight_sql",
+                     host="localhost",
+                     port=31337,
+                     username=os.getenv("FLIGHT_USERNAME", "flight_username"),
+                     password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
+                     query={"disableCertificateVerification": "True",
+                            "useEncryption": "True"
+                            }
+                     )
 
     engine = create_engine(url=url)
     Base.metadata.create_all(bind=engine)
