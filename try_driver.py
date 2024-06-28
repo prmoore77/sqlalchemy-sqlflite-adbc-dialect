@@ -1,3 +1,4 @@
+import os
 import logging
 
 from sqlalchemy import create_engine, MetaData, Table, select, Column, text, Integer, String, Sequence
@@ -25,7 +26,10 @@ SQLALCHEMY_DATABASE_URL="flight_sql://flight_username:flight_password@localhost:
 
 def main():
 
-    engine = create_engine(url=SQLALCHEMY_DATABASE_URL)
+    engine = create_engine(url=SQLALCHEMY_DATABASE_URL,
+                           # username=os.getenv("FLIGHT_USERNAME", "flight_username"),
+                           # password=os.getenv("FLIGHT_PASSWORD", "flight_password")
+                           )
     Base.metadata.create_all(bind=engine)
 
     metadata = MetaData()
@@ -36,24 +40,24 @@ def main():
 
     with Session(bind=engine) as session:
 
-        # Execute some raw SQL
-        results = session.execute(statement=text("SELECT * FROM joe")).fetchall()
-        print(results)
-
-        # Try a SQLAlchemy table select
-        joe: Table = metadata.tables["joe"]
-        stmt = select(joe.c.a)
-
-        results = session.execute(statement=stmt).fetchall()
-        print(results)
-
         # Try ORM
-        session.add(FakeModel(name="Joe"))
+        session.add(FakeModel(id=1, name="Joe"))
         session.commit()
 
         joe = session.query(FakeModel).filter(FakeModel.name == "Joe").first()
 
-        assert joe.name == "joe"
+        assert joe.name == "Joe"
+
+        # Execute some raw SQL
+        results = session.execute(statement=text("SELECT * FROM fake")).fetchall()
+        print(results)
+
+        # Try a SQLAlchemy table select
+        fake: Table = metadata.tables["fake"]
+        stmt = select(fake.c.name)
+
+        results = session.execute(statement=stmt).fetchall()
+        print(results)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ import re
 import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-import adbc_driver_flightsql.dbapi as flight_sql
+from adbc_driver_flightsql import dbapi as flight_sql, DatabaseOptions
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.default import DefaultDialect
@@ -108,22 +108,44 @@ class FlightSQLDialect(DefaultDialect):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-    def connect(self, *cargs: Any, **cparams: Any) -> "Connection":
+    def create_connect_args(self, url):
+        opts = url.translate_connect_args()
+        username = opts.get('username', None)
+        password = opts.get('password', None)
+        host = opts.get('host', None)
+        port = opts.get('port', None)
+
+        # Get Query parameters
+        query = url.query
+        use_encryption = query.get('useEncryption', None)
+        disable_certificate_verification = query.get('disableCertificateVerification', None)
+
+        # Assuming the connection arguments for your custom DB
+        return ({}, dict(host=host,
+                         port=port,
+                         username=username,
+                         password=password,
+                         use_encryption=use_encryption,
+                         disable_certificate_verification=disable_certificate_verification
+                         )
+                )
+
+    def connect(self, *args, **kwargs) -> "Connection":
         protocol: str = "grpc"
-        use_encryption: bool = cparams.get("useEncryption", "False").lower() == "true"
+        use_encryption: bool = kwargs.pop("use_encryption", "False").lower() == "true"
         if use_encryption:
             protocol += "+tls"
 
-        disable_certificate_verification: bool = cparams.get("disableCertificateVerification", "False").lower() == "true"
+        disable_certificate_verification: bool = kwargs.pop("disable_certificate_verification", "False").lower() == "true"
 
-        uri = f"{protocol}://{cparams.get('host')}:{cparams.get('port')}"
-        user = cparams.get('username')
-        password = cparams.get('password')
+        uri = f"{protocol}://{kwargs.get('host')}:{kwargs.get('port')}"
+        username = kwargs.pop('username')
+        password = kwargs.pop('password')
 
         conn = flight_sql.connect(uri=uri,
-                                  db_kwargs={"username": user,
+                                  db_kwargs={"username": username,
                                              "password": password,
-                                             "adbc.flight.sql.client_option.tls_skip_verify": str(disable_certificate_verification).lower()
+                                             DatabaseOptions.TLS_SKIP_VERIFY.value: str(disable_certificate_verification).lower()
                                              }
                                   )
 
