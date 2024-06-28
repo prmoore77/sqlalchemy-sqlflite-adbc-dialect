@@ -4,6 +4,7 @@ import logging
 from sqlalchemy import create_engine, MetaData, Table, select, Column, text, Integer, String, Sequence
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.engine.url import URL
 
 # Setup logging
 logging.basicConfig()
@@ -20,16 +21,18 @@ class FakeModel(Base):  # type: ignore
     name = Column(String)
 
 
-# Constants
-SQLALCHEMY_DATABASE_URL="flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
-
-
 def main():
+    # Build the URL
+    url = URL(drivername="flight_sql",
+              host="localhost",
+              port=31337,
+              database="default",
+              username=os.getenv("FLIGHT_USERNAME", "flight_username"),
+              password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
+              query={"disableCertificateVerification": "True", "useEncryption": "True"},
+              )
 
-    engine = create_engine(url=SQLALCHEMY_DATABASE_URL,
-                           # username=os.getenv("FLIGHT_USERNAME", "flight_username"),
-                           # password=os.getenv("FLIGHT_PASSWORD", "flight_password")
-                           )
+    engine = create_engine(url=url)
     Base.metadata.create_all(bind=engine)
 
     metadata = MetaData()

@@ -120,15 +120,17 @@ class FlightSQLDialect(DefaultDialect):
         use_encryption = query.get('useEncryption', None)
         disable_certificate_verification = query.get('disableCertificateVerification', None)
 
+        args = dict()
+        kwargs = dict(host=host,
+                      port=port,
+                      username=username,
+                      password=password,
+                      use_encryption=use_encryption,
+                      disable_certificate_verification=disable_certificate_verification
+                      )
+
         # Assuming the connection arguments for your custom DB
-        return ({}, dict(host=host,
-                         port=port,
-                         username=username,
-                         password=password,
-                         use_encryption=use_encryption,
-                         disable_certificate_verification=disable_certificate_verification
-                         )
-                )
+        return (args, kwargs)
 
     def connect(self, *args, **kwargs) -> "Connection":
         protocol: str = "grpc"
