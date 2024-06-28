@@ -24,7 +24,7 @@ python3 -m venv .venv
 # Upgrade pip, setuptools, and wheel
 pip install --upgrade pip setuptools wheel
 
-# Install Sidewinder-DB - in editable mode with dev dependencies
+# Install SQLAlchemy Flight SQL ADBC Dialect - in editable mode with dev dependencies
 pip install --editable .[dev]
 ```
 
