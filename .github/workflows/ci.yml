@@ -1,4 +1,4 @@
-name: sidewinder-ci
+name: sqlalchemy-flight-sql-adbc-dialect-ci
 
 on:
   workflow_dispatch:
