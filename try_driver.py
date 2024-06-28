@@ -1,8 +1,8 @@
-import sqlalchemy_adbc_flight_sql_driver
-from sqlalchemy import create_engine, MetaData, Table, select, Column, DateTime, func, text, Integer, String, Sequence
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import Session
 import logging
+
+from sqlalchemy import create_engine, MetaData, Table, select, Column, text, Integer, String, Sequence
+from sqlalchemy.orm import Session
+from sqlalchemy.orm import declarative_base
 
 # Setup logging
 logging.basicConfig()
@@ -20,7 +20,7 @@ class FakeModel(Base):  # type: ignore
 
 
 # Constants
-SQLALCHEMY_DATABASE_URL="adbc_flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
+SQLALCHEMY_DATABASE_URL="flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
 
 
 def main():

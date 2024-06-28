@@ -31,11 +31,14 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 
+[project.entry-points."sqlalchemy.dialects"]
+flight_sql = "sqlalchemy_flight_sql_adbc_dialect:FlightSQLDialect"
+
 [project.optional-dependencies]
 dev = ["bumpver", "pip-tools", "pytest"]
 
 [project.urls]
-Homepage = "https://github.com/prmoore77/sqlalchemy_adbc_flight_sql_driver"
+Homepage = "https://github.com/prmoore77/sqlalchemy_flight_sql_adbc_dialect"
 
 [project.scripts]
 

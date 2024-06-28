@@ -43,7 +43,7 @@ from sqlalchemy import create_engine, MetaData, Table, select, Column, DateTime,
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-SQLALCHEMY_DATABASE_URL="adbc_flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
+SQLALCHEMY_DATABASE_URL="flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
 
 
 def main():
@@ -71,3 +71,6 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+
+### Credits
+Much code and inspiration was taken from repo: https://github.com/Mause/duckdb_engine

@@ -1,18 +1,14 @@
-import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, cast
-
 import re
+import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
+
 import adbc_driver_flightsql.dbapi as flight_sql
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
-from sqlalchemy import util
-from sqlalchemy.engine.reflection import cache
-from sqlalchemy.engine.url import URL
-from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.engine.interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, ReflectedCheckConstraint
-from sqlalchemy.dialects import registry
 from sqlalchemy.engine.default import DefaultDialect
-
+from sqlalchemy.engine.interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, \
+    ReflectedCheckConstraint
+from sqlalchemy.engine.url import URL
 
 __version__ = "0.0.1"
 
@@ -100,8 +96,8 @@ class ConnectionWrapper:
 
 
 class FlightSQLDialect(DefaultDialect):
-    name = "adbc_flight_sql"
-    driver = "adbc_flight_sql_driver"
+    name = "flight_sql"
+    driver = "adbc"
     _has_events = False
     supports_statement_cache = False
     supports_comments = False
@@ -422,10 +418,3 @@ class FlightSQLDialect(DefaultDialect):
             FlightSQLWarning,
         )
         return []
-
-
-# Register the dialect
-registry.register(name="adbc_flight_sql",
-                  modulepath="sqlalchemy_adbc_flight_sql_driver",
-                  objname="FlightSQLDialect"
-                  )
