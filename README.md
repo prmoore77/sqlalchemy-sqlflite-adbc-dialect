@@ -1,10 +1,10 @@
 # SQLAlchemy Flight SQL ADBC Dialect 
 
-[<img src="https://img.shields.io/badge/GitHub-prmoore77%2Fsqlalchemy-flight-sql-adbc-dialect-blue.svg?logo=Github">](https://github.com/prmoore77/sqlalchemy-flight-sql-adbc-dialect)
+[<img src="https://img.shields.io/badge/GitHub-prmoore77%2Fsqlalchemy--flight--sql--adbc--dialect-blue.svg?logo=Github">](https://github.com/prmoore77/sqlalchemy-flight-sql-adbc-dialect)
 [![sqlalchemy-flight-sql-adbc-dialect-ci](https://github.com/prmoore77/sqlalchemy-flight-sql-adbc-dialect/actions/workflows/ci.yml/badge.svg)](https://github.com/prmoore77/sqlalchemy-flight-sql-adbc-dialect/actions/workflows/ci.yml)
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/sqlalchemy-flight-sql-adbc-dialect)](https://pypi.org/project/sqlalchemy-flight-sql-adbc-dialect/)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/sqlalchemy--flight--sql--adbc--dialect)](https://pypi.org/project/sqlalchemy-flight-sql-adbc-dialect/)
 [![PyPI version](https://badge.fury.io/py/sqlalchemy-flight-sql-adbc-dialect.svg)](https://badge.fury.io/py/sqlalchemy-flight-sql-adbc-dialect)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/sqlalchemy-flight-sql-adbc-dialect.svg)](https://pypi.org/project/sqlalchemy-flight-sql-adbc-dialect/)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/sqlalchemy--flight--sql--adbc--dialect.svg)](https://pypi.org/project/sqlalchemy-flight-sql-adbc-dialect/)
 
 Basic SQLAlchemy dialect for the [Flight SQL Server Example](https://github.com/voltrondata/flight-sql-server-example)
 
