@@ -6,13 +6,13 @@ build-backend = "setuptools.build_meta"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["./src"]  # list of folders that contain the packages (["."] by default)
+where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
 
 [project]
-name = "sqlalchemy-adbc-flight-sql-driver"
+name = "sqlalchemy-flight-sql-adbc-dialect"
 version = "0.0.1"
-description = "A SQLAlchemy connector/driver with ADBC for connecting to a Flight SQL server"
+description = "A SQLAlchemy dialect for connecting to a Flight SQL server with ADBC"
 readme = "README.md"
 authors = [{ name = "Philip Moore", email = "prmoore77@hotmail.com" }]
 license = { file = "LICENSE" }
@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-keywords = ["sqlalchemy", "flight-sql", "adbc"]
+keywords = ["sqlalchemy", "flight-sql", "adbc", "dialect"]
 dependencies = [
     "sqlalchemy==2.0.*",
     "adbc-driver-flightsql==1.0.*",

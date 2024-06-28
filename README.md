@@ -1,10 +1,37 @@
-# SQLAlchemy Flight SQL ADBC Driver 
+# SQLAlchemy Flight SQL ADBC Dialect 
 
-Basic SQLAlchemy driver for [Flight SQL Server](https://github.com/voltrondata/flight-sql-server-example)
+Basic SQLAlchemy dialect for the [Flight SQL Server Example](https://github.com/voltrondata/flight-sql-server-example)
 
 ## Installation
+
+### Option 1 - from PyPi
 ```sh
-$ pip install sqlalchemy-adbc-flight-sql-driver
+$ pip install sqlalchemy-flight-sql-adbc-dialect
+```
+
+### Option 2 - from source - for development
+```shell
+git clone https://github.com/prmoore77/sqlalchemy_flight_sql_adbc_dialect.git
+
+cd sqlalchemy_flight_sql_adbc_dialect
+
+# Create the virtual environment
+python3 -m venv .venv
+
+# Activate the virtual environment
+. .venv/bin/activate
+
+# Upgrade pip, setuptools, and wheel
+pip install --upgrade pip setuptools wheel
+
+# Install Sidewinder-DB - in editable mode with dev dependencies
+pip install --editable .[dev]
+```
+
+### Note
+For the following commands - if you running from source and using `--editable` mode (for development purposes) - you will need to set the PYTHONPATH environment variable as follows:
+```shell
+export PYTHONPATH=$(pwd)/src
 ```
 
 ## Usage
@@ -12,12 +39,10 @@ $ pip install sqlalchemy-adbc-flight-sql-driver
 Once you've installed this package, you should be able to just use it, as SQLAlchemy does a python path search
 
 ```python
-import sqlalchemy_adbc_flight_sql_driver
 from sqlalchemy import create_engine, MetaData, Table, select, Column, DateTime, func, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
-# Constants
 SQLALCHEMY_DATABASE_URL="adbc_flight_sql://flight_username:flight_password@localhost:31337?disableCertificateVerification=True&useEncryption=True"
 
 

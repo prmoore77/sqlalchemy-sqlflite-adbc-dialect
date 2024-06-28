@@ -107,6 +107,7 @@ class FlightSQLDialect(DefaultDialect):
     supports_comments = False
     supports_sane_rowcount = False
     supports_server_side_cursors = False
+    postfetch_lastrowid = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
