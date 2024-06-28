@@ -29,7 +29,7 @@ dependencies = [
     "pyarrow==16.1.0",
     "psycopg2==2.9.*",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 
 [project.entry-points."sqlalchemy.dialects"]
 flight_sql = "sqlalchemy_flight_sql_adbc_dialect:FlightSQLDialect"
