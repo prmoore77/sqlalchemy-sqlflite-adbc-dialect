@@ -11,7 +11,7 @@ from .sqlalchemy_interfaces import ReflectedColumn, ReflectedPrimaryKeyConstrain
 from sqlalchemy.engine.url import URL
 
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 if TYPE_CHECKING:
     from sqlalchemy.base import Connection
