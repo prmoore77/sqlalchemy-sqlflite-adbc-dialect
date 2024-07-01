@@ -96,6 +96,8 @@ def main():
                             }
                      )
 
+    print(f"Database URL: {url}")
+
     engine = create_engine(url=url)
     Base.metadata.create_all(bind=engine)
 

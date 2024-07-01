@@ -1,9 +1,7 @@
 # This module is used to bridge the gap between the different versions of SQLAlchemy.
-
 import importlib_metadata
-from typing import TypedDict, Optional, NotRequired, Any, Dict, List
+from typing import TypedDict, Optional, Any, Dict, List
 from sqlalchemy.sql.type_api import TypeEngine
-
 
 # Get the version of the package
 package_name = "sqlalchemy"
@@ -11,6 +9,7 @@ package_version = importlib_metadata.version(package_name)
 
 # Split the version into major, minor, and patch components
 major, minor, patch = map(int, package_version.split('.')[:3])
+
 
 # Conditional imports based on the version
 if major > 1:
@@ -32,7 +31,7 @@ else:
         """the expression used to generate this column returned
         as a string SQL expression"""
 
-        persisted: NotRequired[bool]
+        persisted: Optional[bool]
         """indicates if the value is stored in the table or computed on demand"""
 
 
@@ -102,7 +101,7 @@ else:
         default: Optional[str]
         """column default expression as a SQL string"""
 
-        autoincrement: NotRequired[bool]
+        autoincrement: Optional[bool]
         """database-dependent autoincrement flag.
 
         This flag indicates if the column has a database-side "autoincrement"
@@ -115,26 +114,26 @@ else:
 
         """
 
-        comment: NotRequired[Optional[str]]
+        comment: Optional[str]
         """comment for the column, if present.
         Only some dialects return this key
         """
 
-        computed: NotRequired[ReflectedComputed]
+        computed: Optional[ReflectedComputed]
         """indicates that this column is computed by the database.
         Only some dialects return this key.
 
         .. versionadded:: 1.3.16 - added support for computed reflection.
         """
 
-        identity: NotRequired[ReflectedIdentity]
+        identity: Optional[ReflectedIdentity]
         """indicates this column is an IDENTITY column.
         Only some dialects return this key.
 
         .. versionadded:: 1.4 - added support for identity column reflection.
         """
 
-        dialect_options: NotRequired[Dict[str, Any]]
+        dialect_options: Optional[Dict[str, Any]]
         """Additional dialect-specific options detected for this reflected
         object"""
 
@@ -149,7 +148,7 @@ else:
         name: Optional[str]
         """constraint name"""
 
-        comment: NotRequired[Optional[str]]
+        comment: Optional[str]
         """comment for the constraint, if present"""
 
 
@@ -165,7 +164,7 @@ else:
         constrained_columns: List[str]
         """column names which comprise the primary key"""
 
-        dialect_options: NotRequired[Dict[str, Any]]
+        dialect_options: Optional[Dict[str, Any]]
         """Additional dialect-specific options detected for this primary key"""
 
     class ReflectedForeignKeyConstraint(ReflectedConstraint):
@@ -189,7 +188,7 @@ else:
         referred_columns: List[str]
         """referred column names that correspond to ``constrained_columns``"""
 
-        options: NotRequired[Dict[str, Any]]
+        options: Optional[Dict[str, Any]]
         """Additional options detected for this foreign key constraint"""
 
     class ReflectedCheckConstraint(ReflectedConstraint):
@@ -204,7 +203,7 @@ else:
         sqltext: str
         """the check constraint's SQL expression"""
 
-        dialect_options: NotRequired[Dict[str, Any]]
+        dialect_options: Optional[Dict[str, Any]]
         """Additional dialect-specific options detected for this check constraint
 
         .. versionadded:: 1.3.8
