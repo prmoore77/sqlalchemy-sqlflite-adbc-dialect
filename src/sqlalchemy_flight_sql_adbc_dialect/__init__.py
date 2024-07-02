@@ -100,7 +100,7 @@ class FlightSQLDialect(DefaultDialect):
     name = "flight_sql"
     driver = "adbc"
     _has_events = False
-    supports_statement_cache = False
+    supports_statement_cache = True
     supports_comments = False
     supports_sane_rowcount = False
     supports_server_side_cursors = False
@@ -233,7 +233,8 @@ class FlightSQLDialect(DefaultDialect):
         s = """
             SELECT table_name 
               FROM information_schema.tables
-             WHERE table_type = 'BASE TABLE'
+             WHERE table_catalog = current_database()
+               AND table_type = 'BASE TABLE'
                AND table_schema = ?
             ORDER BY 1 ASC
             """
@@ -279,7 +280,7 @@ class FlightSQLDialect(DefaultDialect):
 
         return columns
 
-    def _get_column_type(self, data_type):
+    def _get_column_type(self, data_type: str):
         # Map database-specific data types to SQLAlchemy types
         if data_type == 'VARCHAR':
             return sqltypes.String
@@ -291,6 +292,10 @@ class FlightSQLDialect(DefaultDialect):
             return sqltypes.BigInteger
         elif re.match(pattern="^DECIMAL", string=data_type):
             return sqltypes.Numeric
+        elif data_type == "DOUBLE":
+            return sqltypes.Float
+        elif data_type == "BOOLEAN":
+            return sqltypes.Boolean
         else:
             raise ValueError(f"Unsupported column type: {data_type}")
 
@@ -301,7 +306,14 @@ class FlightSQLDialect(DefaultDialect):
             include: Optional[Any] = None,
             **kw: Any,
     ) -> Any:
-        s = "SELECT table_name FROM information_schema.tables WHERE table_type='VIEW' AND table_schema=? ORDER BY 1"
+        s = """
+            SELECT table_name
+              FROM information_schema.tables
+             WHERE table_catalog = current_database()
+               AND table_type = 'VIEW'
+               AND table_schema = ?
+             ORDER BY 1
+            """
         with connection.connection.cursor() as cur:
             cur.execute(operation=s, parameters=[schema if schema is not None else "main"])
             rs = cur.fetchall()
