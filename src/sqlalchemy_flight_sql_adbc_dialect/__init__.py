@@ -288,6 +288,10 @@ class FlightSQLDialect(DefaultDialect):
             return sqltypes.Integer
         elif data_type == 'DATE':
             return sqltypes.DateTime
+        elif data_type == "TIMESTAMP":
+            return sqltypes.TIMESTAMP
+        elif data_type == "TIME":
+            return sqltypes.TIME
         elif data_type == "BIGINT":
             return sqltypes.BigInteger
         elif re.match(pattern="^DECIMAL", string=data_type):
