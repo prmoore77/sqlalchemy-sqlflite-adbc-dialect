@@ -280,13 +280,16 @@ class FlightSQLDialect(DefaultDialect):
 
         return columns
 
-    def _get_column_type(self, data_type: str):
+    @staticmethod
+    def _get_column_type(data_type: str):
         # Map database-specific data types to SQLAlchemy types
         if data_type == 'VARCHAR':
             return sqltypes.String
         elif data_type == 'INTEGER':
             return sqltypes.Integer
         elif data_type == 'DATE':
+            return sqltypes.Date
+        elif data_type == 'DATETIME':
             return sqltypes.DateTime
         elif data_type == "TIMESTAMP":
             return sqltypes.TIMESTAMP
@@ -294,6 +297,8 @@ class FlightSQLDialect(DefaultDialect):
             return sqltypes.TIME
         elif data_type == "BIGINT":
             return sqltypes.BigInteger
+        elif data_type == "TINYINT":
+            return sqltypes.SmallInteger
         elif re.match(pattern="^DECIMAL", string=data_type):
             return sqltypes.Numeric
         elif data_type == "DOUBLE":
@@ -301,7 +306,11 @@ class FlightSQLDialect(DefaultDialect):
         elif data_type == "BOOLEAN":
             return sqltypes.Boolean
         else:
-            raise ValueError(f"Unsupported column type: {data_type}")
+            # Try a catch-all for any other data types
+            try:
+                return getattr(sqltypes, data_type)
+            except AttributeError:
+                raise ValueError(f"Unsupported column type: {data_type}")
 
     def get_view_names(
             self,
