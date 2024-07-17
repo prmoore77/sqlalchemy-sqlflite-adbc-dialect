@@ -11,7 +11,7 @@ include = ["*"]  # package names should match these glob patterns (["*"] by defa
 
 [project]
 name = "sqlalchemy-flight-sql-adbc-dialect"
-version = "0.0.13"
+version = "0.0.14"
 description = "A SQLAlchemy dialect for connecting to a Flight SQL server with ADBC"
 readme = "README.md"
 authors = [{ name = "Philip Moore", email = "prmoore77@hotmail.com" }]
@@ -44,7 +44,7 @@ Homepage = "https://github.com/prmoore77/sqlalchemy_flight_sql_adbc_dialect"
 [project.scripts]
 
 [tool.bumpver]
-current_version = "0.0.13"
+current_version = "0.0.14"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
