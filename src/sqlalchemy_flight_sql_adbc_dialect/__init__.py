@@ -305,6 +305,8 @@ class FlightSQLDialect(DefaultDialect):
             return sqltypes.Float
         elif data_type == "BOOLEAN":
             return sqltypes.Boolean
+        elif re.match(pattern="^STRUCT\(", string=data_type):
+            return sqltypes.JSON
         else:
             # Try a catch-all for any other data types
             try:
