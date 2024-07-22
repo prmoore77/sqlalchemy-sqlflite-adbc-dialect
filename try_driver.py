@@ -23,11 +23,11 @@ class FakeModel(Base):  # type: ignore
 
 def main():
     # Build the URL
-    url = URL.create(drivername="flight_sql",
+    url = URL.create(drivername="sqlflite",
                      host="localhost",
                      port=31337,
-                     username=os.getenv("FLIGHT_USERNAME", "flight_username"),
-                     password=os.getenv("FLIGHT_PASSWORD", "flight_password"),
+                     username=os.getenv("SQLFLITE_USERNAME", "sqlflite_username"),
+                     password=os.getenv("SQLFLITE_PASSWORD", "sqlflite_password"),
                      query={"disableCertificateVerification": "True",
                             "useEncryption": "True"
                             }

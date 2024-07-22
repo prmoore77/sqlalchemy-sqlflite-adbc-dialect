@@ -2,7 +2,7 @@ import re
 import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-from adbc_driver_flightsql import dbapi as flight_sql, DatabaseOptions, ConnectionOptions
+from adbc_driver_flightsql import dbapi as sqlflite, DatabaseOptions, ConnectionOptions
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.default import DefaultDialect
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import _IndexDict
 
 
-class FlightSQLWarning(Warning):
+class SQLFliteWarning(Warning):
     pass
 
 
@@ -28,11 +28,11 @@ class ConnectionWrapper:
     autocommit = None
     closed = False
 
-    def __init__(self, c: flight_sql.Connection) -> None:
+    def __init__(self, c: sqlflite.Connection) -> None:
         self.__c = c
         self.notices = list()
 
-    def cursor(self) -> flight_sql.Cursor:
+    def cursor(self) -> sqlflite.Cursor:
         return self.__c.cursor()
 
     def fetchmany(self, size: Optional[int] = None) -> List:
@@ -96,8 +96,8 @@ class ConnectionWrapper:
                 raise e
 
 
-class FlightSQLDialect(DefaultDialect):
-    name = "flight_sql"
+class SQLFliteDialect(DefaultDialect):
+    name = "sqlflite"
     driver = "adbc"
     _has_events = False
     supports_statement_cache = True
@@ -163,10 +163,10 @@ class FlightSQLDialect(DefaultDialect):
         for key, value in kwargs.items():
             conn_kwargs[f"{ConnectionOptions.RPC_CALL_HEADER_PREFIX.value}{key}"] = value
 
-        conn = flight_sql.connect(uri=uri,
-                                  db_kwargs=db_kwargs,
-                                  conn_kwargs=conn_kwargs
-                                  )
+        conn = sqlflite.connect(uri=uri,
+                                db_kwargs=db_kwargs,
+                                conn_kwargs=conn_kwargs
+                                )
 
         # Add a notices attribute for the PostgreSQL / DuckDB dialect...
         setattr(conn, "notices", ["n/a"])
@@ -182,7 +182,7 @@ class FlightSQLDialect(DefaultDialect):
 
     @classmethod
     def import_dbapi(cls):
-        return flight_sql
+        return sqlflite
 
     @classmethod
     def dbapi(cls):
@@ -486,7 +486,7 @@ class FlightSQLDialect(DefaultDialect):
             **kw: Any,
     ) -> List["_IndexDict"]:
         warnings.warn(
-            "Flight SQL ADBC SQLAlchemy driver doesn't yet support reflection on indices",
-            FlightSQLWarning,
+            "SQLFlite ADBC SQLAlchemy driver doesn't yet support reflection on indices",
+            SQLFliteWarning,
         )
         return []

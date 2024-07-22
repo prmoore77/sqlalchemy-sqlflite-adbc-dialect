@@ -10,9 +10,9 @@ where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
 
 [project]
-name = "sqlalchemy-flight-sql-adbc-dialect"
+name = "sqlalchemy-sqlflite-adbc-dialect"
 version = "0.0.14"
-description = "A SQLAlchemy dialect for connecting to a Flight SQL server with ADBC"
+description = "A SQLAlchemy dialect for connecting to a [SQLFlite](https://github.com/voltrondata/SQLFlite) server with ADBC"
 readme = "README.md"
 authors = [{ name = "Philip Moore", email = "prmoore77@hotmail.com" }]
 license = { file = "LICENSE" }
@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-keywords = ["sqlalchemy", "flight-sql", "adbc", "dialect"]
+keywords = ["sqlalchemy", "flight-sql", "sqlflite", "adbc", "dialect"]
 dependencies = [
     "sqlalchemy==2.0.*",
     "adbc-driver-flightsql==1.1.*",
@@ -33,13 +33,13 @@ dependencies = [
 requires-python = ">=3.9"
 
 [project.entry-points."sqlalchemy.dialects"]
-flight_sql = "sqlalchemy_flight_sql_adbc_dialect:FlightSQLDialect"
+sqlflite = "sqlalchemy_sqlflite_adbc_dialect:SQLFliteDialect"
 
 [project.optional-dependencies]
 dev = ["bumpver", "pip-tools", "pytest"]
 
 [project.urls]
-Homepage = "https://github.com/prmoore77/sqlalchemy_flight_sql_adbc_dialect"
+Homepage = "https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect"
 
 [project.scripts]
 
@@ -55,6 +55,6 @@ tag = true
     '^version = "{version}"$',
     '^current_version = "{version}"$',
 ]
-"src/sqlalchemy_flight_sql_adbc_dialect/__init__.py" = [
+"src/sqlalchemy_sqlflite_adbc_dialect/__init__.py" = [
     '^__version__ = "{version}"$',
 ]
