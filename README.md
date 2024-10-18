@@ -1,25 +1,25 @@
-# SQLAlchemy [SQLFlite](https://github.com/voltrondata/SQLFlite) ADBC Dialect 
+# SQLAlchemy [GizmoSQL](https://github.com/gizmodata/GizmoSQL) ADBC Dialect 
 
-[<img src="https://img.shields.io/badge/GitHub-prmoore77%2Fsqlalchemy--sqlflite--adbc--dialect-blue.svg?logo=Github">](https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect)
-[![sqlalchemy-sqlflite-adbc-dialect-ci](https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect/actions/workflows/ci.yml/badge.svg)](https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect/actions/workflows/ci.yml)
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/sqlalchemy--sqlflite--adbc--dialect)](https://pypi.org/project/sqlalchemy-sqlflite-adbc-dialect/)
-[![PyPI version](https://badge.fury.io/py/sqlalchemy-sqlflite-adbc-dialect.svg)](https://badge.fury.io/py/sqlalchemy-sqlflite-adbc-dialect)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/sqlalchemy--sqlflite--adbc--dialect.svg)](https://pypi.org/project/sqlalchemy-sqlflite-adbc-dialect/)
+[<img src="https://img.shields.io/badge/GitHub-gizmodata%2Fsqlalchemy--gizmosql--adbc--dialect-blue.svg?logo=Github">](https://github.com/gizmodata/sqlalchemy-gizmosql-adbc-dialect)
+[![sqlalchemy-gizmosql-adbc-dialect-ci](https://github.com/gizmodata/sqlalchemy-gizmosql-adbc-dialect/actions/workflows/ci.yml/badge.svg)](https://github.com/gizmodata/sqlalchemy-gizmosql-adbc-dialect/actions/workflows/ci.yml)
+[![Supported Python Versions](https://img.shields.io/pypi/pyversions/sqlalchemy--gizmosql--adbc--dialect)](https://pypi.org/project/sqlalchemy-gizmosql-adbc-dialect/)
+[![PyPI version](https://badge.fury.io/py/sqlalchemy-gizmosql-adbc-dialect.svg)](https://badge.fury.io/py/sqlalchemy-gizmosql-adbc-dialect)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/sqlalchemy--gizmosql--adbc--dialect.svg)](https://pypi.org/project/sqlalchemy-gizmosql-adbc-dialect/)
 
-Basic SQLAlchemy dialect for [SQLFlite](https://github.com/voltrondata/SQLFlite)
+Basic SQLAlchemy dialect for [GizmoSQL](https://github.com/gizmodata/GizmoSQL)
 
 ## Installation
 
 ### Option 1 - from PyPi
 ```sh
-$ pip install sqlalchemy-sqlflite-adbc-dialect
+$ pip install sqlalchemy-gizmosql-adbc-dialect
 ```
 
 ### Option 2 - from source - for development
 ```shell
-git clone https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect
+git clone https://github.com/gizmodata/sqlalchemy-gizmosql-adbc-dialect
 
-cd sqlalchemy-sqlflite-adbc-dialect
+cd sqlalchemy-gizmosql-adbc-dialect
 
 # Create the virtual environment
 python3 -m venv .venv
@@ -30,12 +30,12 @@ python3 -m venv .venv
 # Upgrade pip, setuptools, and wheel
 pip install --upgrade pip setuptools wheel
 
-# Install SQLAlchemy SQLFlite ADBC Dialect - in editable mode with dev dependencies
+# Install SQLAlchemy GizmoSQL ADBC Dialect - in editable mode with dev dependencies
 pip install --editable .[dev]
 ```
 
 ### Note
-For the following commands - if you running from source and using `--editable` mode (for development purposes) - you will need to set the PYTHONPATH environment variable as follows:
+For the following commands - if you are running from source and using `--editable` mode (for development purposes) - you will need to set the PYTHONPATH environment variable as follows:
 ```shell
 export PYTHONPATH=$(pwd)/src
 ```
@@ -44,22 +44,22 @@ export PYTHONPATH=$(pwd)/src
 
 Once you've installed this package, you should be able to just use it, as SQLAlchemy does a python path search
 
-### Start a SQLFlite Server - example below - see https://github.com/voltrondata/SQLFlite for more details
+### Start a GizmoSQL Server - example below - see https://github.com/gizmodata/GizmoSQL for more details
 ```bash
-docker run --name sqlflite \
+docker run --name gizmosql \
            --detach \
            --rm \
            --tty \
            --init \
            --publish 31337:31337 \
            --env TLS_ENABLED="1" \
-           --env SQLFLITE_PASSWORD="sqlflite_password" \
+           --env GIZMOSQL_PASSWORD="gizmosql_password" \
            --env PRINT_QUERIES="1" \
            --pull missing \
-           voltrondata/sqlflite:latest
+           gizmodata/gizmosql:latest
 ```
 
-### Connect with the SQLAlchemy SQLFlite ADBC Dialect
+### Connect with the SQLAlchemy GizmoSQL ADBC Dialect
 ```python
 import os
 import logging
@@ -86,11 +86,11 @@ class FakeModel(Base):  # type: ignore
 
 def main():
     # Build the URL
-    url = URL.create(drivername="sqlflite",
+    url = URL.create(drivername="gizmosql",
                      host="localhost",
                      port=31337,
-                     username=os.getenv("SQLFLITE_USERNAME", "sqlflite_username"),
-                     password=os.getenv("SQLFLITE_PASSWORD", "sqlflite_password"),
+                     username=os.getenv("GIZMOSQL_USERNAME", "gizmosql_username"),
+                     password=os.getenv("GIZMOSQL_PASSWORD", "gizmosql_password"),
                      query={"disableCertificateVerification": "True",
                             "useEncryption": "True"
                             }

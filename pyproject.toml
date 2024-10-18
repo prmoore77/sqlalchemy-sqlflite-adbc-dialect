@@ -10,9 +10,9 @@ where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["*"]  # package names should match these glob patterns (["*"] by default)
 
 [project]
-name = "sqlalchemy-sqlflite-adbc-dialect"
+name = "sqlalchemy-gizmosql-adbc-dialect"
 version = "0.0.15"
-description = "A SQLAlchemy dialect for connecting to a [SQLFlite](https://github.com/voltrondata/SQLFlite) server with ADBC"
+description = "A SQLAlchemy dialect for connecting to a [GizmoSQL](https://github.com/gizmodata/GizmoSQL) server with ADBC"
 readme = "README.md"
 authors = [{ name = "Philip Moore", email = "prmoore77@hotmail.com" }]
 license = { file = "LICENSE" }
@@ -21,11 +21,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
 ]
-keywords = ["sqlalchemy", "flight-sql", "sqlflite", "adbc", "dialect"]
+keywords = ["sqlalchemy", "flight-sql", "gizmosql", "adbc", "dialect"]
 dependencies = [
     "sqlalchemy==2.0.*",
-    "adbc-driver-flightsql==1.1.*",
-    "adbc-driver-manager==1.1.*",
+    "adbc-driver-flightsql==1.2.*",
+    "adbc-driver-manager==1.2.*",
     "pyarrow==17.0.*",
     "psycopg2==2.9.*",
     "importlib-metadata==8.0.*"
@@ -33,13 +33,25 @@ dependencies = [
 requires-python = ">=3.9"
 
 [project.entry-points."sqlalchemy.dialects"]
-sqlflite = "sqlalchemy_sqlflite_adbc_dialect:SQLFliteDialect"
+gizmosql = "sqlalchemy_gizmosql_adbc_dialect:GizmoSQLDialect"
 
 [project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-snapshot",
+  "pytest-mock",
+  "filelock",
+  "duckdb",
+  "dask",
+  "distributed",
+  "pins[gcs]",
+  "docker"
+]
+
 dev = ["bumpver", "pip-tools", "pytest"]
 
 [project.urls]
-Homepage = "https://github.com/prmoore77/sqlalchemy-sqlflite-adbc-dialect"
+Homepage = "https://github.com/gizmodata/sqlalchemy-gizmosql-adbc-dialect"
 
 [project.scripts]
 
@@ -55,6 +67,6 @@ tag = true
     '^version = "{version}"$',
     '^current_version = "{version}"$',
 ]
-"src/sqlalchemy_sqlflite_adbc_dialect/__init__.py" = [
+"src/sqlalchemy_gizmosql_adbc_dialect/__init__.py" = [
     '^__version__ = "{version}"$',
 ]

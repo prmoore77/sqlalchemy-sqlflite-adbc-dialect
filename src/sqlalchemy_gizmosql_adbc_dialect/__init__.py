@@ -2,13 +2,15 @@ import re
 import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-from adbc_driver_flightsql import dbapi as sqlflite, DatabaseOptions, ConnectionOptions
+import sqlalchemy.exc
+from adbc_driver_flightsql import dbapi as gizmosql, DatabaseOptions, ConnectionOptions
 from sqlalchemy import pool
 from sqlalchemy import types as sqltypes
 from sqlalchemy.engine.default import DefaultDialect
 from .sqlalchemy_interfaces import ReflectedColumn, ReflectedPrimaryKeyConstraint, ReflectedForeignKeyConstraint, \
     ReflectedCheckConstraint
 from sqlalchemy.engine.url import URL
+from adbc_driver_manager import OperationalError
 
 
 __version__ = "0.0.15"
@@ -18,7 +20,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.interfaces import _IndexDict
 
 
-class SQLFliteWarning(Warning):
+class GizmoSQLWarning(Warning):
     pass
 
 
@@ -28,11 +30,11 @@ class ConnectionWrapper:
     autocommit = None
     closed = False
 
-    def __init__(self, c: sqlflite.Connection) -> None:
+    def __init__(self, c: gizmosql.Connection) -> None:
         self.__c = c
         self.notices = list()
 
-    def cursor(self) -> sqlflite.Cursor:
+    def cursor(self) -> gizmosql.Cursor:
         return self.__c.cursor()
 
     def fetchmany(self, size: Optional[int] = None) -> List:
@@ -66,7 +68,9 @@ class ConnectionWrapper:
             parameters: Optional[List[Dict]] = None,
             context: Optional[Any] = None,
     ) -> None:
-        self.cursor().executemany(statement, parameters)
+        with self.cursor() as cur:
+            cur.executemany(statement, parameters)
+            _ = cur.fetchall()
 
     def execute(
             self,
@@ -84,6 +88,7 @@ class ConnectionWrapper:
             else:
                 with self.__c.cursor() as cur:
                     cur.execute(statement, parameters)
+                    _ = cur.fetchall()
         except RuntimeError as e:
             if e.args[0].startswith("Not implemented Error"):
                 raise NotImplementedError(*e.args) from e
@@ -96,8 +101,8 @@ class ConnectionWrapper:
                 raise e
 
 
-class SQLFliteDialect(DefaultDialect):
-    name = "sqlflite"
+class GizmoSQLDialect(DefaultDialect):
+    name = "gizmosql"
     driver = "adbc"
     _has_events = False
     supports_statement_cache = True
@@ -163,7 +168,7 @@ class SQLFliteDialect(DefaultDialect):
         for key, value in kwargs.items():
             conn_kwargs[f"{ConnectionOptions.RPC_CALL_HEADER_PREFIX.value}{key}"] = value
 
-        conn = sqlflite.connect(uri=uri,
+        conn = gizmosql.connect(uri=uri,
                                 db_kwargs=db_kwargs,
                                 conn_kwargs=conn_kwargs
                                 )
@@ -182,7 +187,7 @@ class SQLFliteDialect(DefaultDialect):
 
     @classmethod
     def import_dbapi(cls):
-        return sqlflite
+        return gizmosql
 
     @classmethod
     def dbapi(cls):
@@ -194,17 +199,29 @@ class SQLFliteDialect(DefaultDialect):
     def get_default_isolation_level(self, connection: "Connection") -> None:
         raise NotImplementedError()
 
+    def do_execute(self, cursor, statement, parameters, context=None):
+        cursor.execute(statement, parameters)
+        if context.compiled.is_ddl or context.compiled.statement.is_dml:
+            _ = cursor.fetchall()
+
     def do_rollback(self, connection: "Connection") -> None:
         with connection.cursor() as cur:
             cur.execute("rollback")
+            try:
+                _ = cur.fetchall()
+            except OperationalError as e:
+                if "TransactionContext Error: cannot rollback - no transaction is active" in e.args[0]:
+                    pass
 
     def do_begin(self, connection: "Connection") -> None:
         with connection.cursor() as cur:
             cur.execute("begin")
+            _ = cur.fetchall()
 
     def do_commit(self, connection: "Connection") -> None:
         with connection.cursor() as cur:
             cur.execute("commit")
+            _ = cur.fetchall()
 
     def get_schema_names(
             self,
@@ -367,7 +384,7 @@ class SQLFliteDialect(DefaultDialect):
     ) -> ReflectedPrimaryKeyConstraint:
         return_value = None
         s = """
-            SELECT 'pk_' || table_name AS constraint_name
+            SELECT constraint_name
                  , constraint_column_names
               FROM duckdb_constraints()
              WHERE constraint_type = 'PRIMARY KEY'
@@ -399,25 +416,13 @@ class SQLFliteDialect(DefaultDialect):
         return_value = []
         s = """
             SELECT
-                 regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\(.*\\)$', '\\1')   AS pk_table_name
-               , table_name                                                                            AS fk_table_name
-               , 'fk_' || fk_table_name || '_to_' || pk_table_name
-                 || CASE WHEN COUNT(*) OVER (PARTITION BY pk_table_name
-                                                        , fk_table_name
-                                            ) > 1
-                            THEN '_' ||
-                               DENSE_RANK() OVER (PARTITION BY pk_table_name
-                                                             , fk_table_name
-                                                  ORDER BY  constraint_column_names ASC
-                                                 )
-                         ELSE ''
-                    END                                                                                AS constraint_name
-               , constraint_column_names                                                               AS constrained_columns
-               , schema_name                                                                           AS referred_schema
-               , regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\(.*\\)$', '\\1')   AS referred_table
-               , string_split(regexp_replace(constraint_text, '^FOREIGN KEY \\(.*\\) REFERENCES (.*)\\((.*)\\)$', '\\2')
-                            , ', '
-                             )                                                                         AS referred_columns
+                 referenced_table          AS pk_table_name
+               , table_name                AS fk_table_name
+               , constraint_name
+               , constraint_column_names   AS constrained_columns
+               , schema_name               AS referred_schema
+               , referenced_table          AS referred_table
+               , referenced_column_names   AS referred_columns
             FROM duckdb_constraints()
             WHERE constraint_type = 'FOREIGN KEY'
               AND database_name = current_database()
@@ -452,11 +457,7 @@ class SQLFliteDialect(DefaultDialect):
     ) -> List[ReflectedCheckConstraint]:
         return_value = []
         s = """
-            SELECT table_name 
-                || '_check_'
-                || ROW_NUMBER () OVER (PARTITION BY table_name
-                                       ORDER BY constraint_index ASC
-                                      ) AS constraint_name
+            SELECT constraint_name
                  , expression AS sqltext
             FROM duckdb_constraints()
             WHERE constraint_type = 'CHECK'
@@ -486,7 +487,7 @@ class SQLFliteDialect(DefaultDialect):
             **kw: Any,
     ) -> List["_IndexDict"]:
         warnings.warn(
-            "SQLFlite ADBC SQLAlchemy driver doesn't yet support reflection on indices",
-            SQLFliteWarning,
+            "GizmoSQL ADBC SQLAlchemy driver doesn't yet support reflection on indices",
+            GizmoSQLWarning,
         )
         return []
