@@ -1,4 +1,4 @@
-name: sqlalchemy-flight-sql-adbc-dialect-ci
+name: sqlalchemy-gizmosql-adbc-dialect-ci
 
 on:
   workflow_dispatch:
