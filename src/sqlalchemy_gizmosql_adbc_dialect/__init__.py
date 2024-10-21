@@ -201,7 +201,7 @@ class GizmoSQLDialect(DefaultDialect):
 
     def do_execute(self, cursor, statement, parameters, context=None):
         cursor.execute(statement, parameters)
-        if context.compiled.is_ddl or context.compiled.statement.is_dml:
+        if context.isddl or context.compiled.statement.is_dml:
             _ = cursor.fetchall()
 
     def do_rollback(self, connection: "Connection") -> None:
