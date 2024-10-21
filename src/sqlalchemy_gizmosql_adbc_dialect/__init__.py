@@ -124,8 +124,8 @@ class GizmoSQLDialect(DefaultDialect):
 
         # Get Query parameters
         query_dict = dict(url.query)
-        use_encryption = query_dict.pop('useEncryption', None)
-        disable_certificate_verification = query_dict.pop('disableCertificateVerification', None)
+        use_encryption = query_dict.pop('useEncryption', True)
+        disable_certificate_verification = query_dict.pop('disableCertificateVerification', False)
         args = dict()
         kwargs = dict(host=host,
                       port=port,
