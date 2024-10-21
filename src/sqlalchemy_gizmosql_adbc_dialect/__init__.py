@@ -124,8 +124,8 @@ class GizmoSQLDialect(DefaultDialect):
 
         # Get Query parameters
         query_dict = dict(url.query)
-        use_encryption = query_dict.pop('useEncryption', True)
-        disable_certificate_verification = query_dict.pop('disableCertificateVerification', False)
+        use_encryption = query_dict.pop('useEncryption', None)
+        disable_certificate_verification = query_dict.pop('disableCertificateVerification', None)
         args = dict()
         kwargs = dict(host=host,
                       port=port,
@@ -142,11 +142,13 @@ class GizmoSQLDialect(DefaultDialect):
 
     def connect(self, *args, **kwargs) -> "Connection":
         protocol: str = "grpc"
-        use_encryption: bool = kwargs.pop("use_encryption", "False").lower() == "true"
+
+        use_encryption: bool = (kwargs.pop("use_encryption", "False") or "False").lower() == "true"
+
         if use_encryption:
             protocol += "+tls"
 
-        disable_certificate_verification: bool = kwargs.pop("disable_certificate_verification", "False").lower() == "true"
+        disable_certificate_verification: bool = (kwargs.pop("disable_certificate_verification", "False") or "False").lower() == "true"
 
         uri = f"{protocol}://{kwargs.pop('host')}:{kwargs.pop('port')}"
 
